@@ -1,6 +1,7 @@
 {
   "name": "boxfix",
   "version": "1.0.1",
+  "packageManager": "pnpm@10.10.0",
   "description": "Fix misaligned ASCII diagram borders in markdown files",
   "type": "module",
   "main": "./dist/index.js",
@@ -27,7 +28,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "pnpm build",
     "changeset": "changeset",
     "release": "changeset publish"
   },

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**boxfix** (`@sanity-labs/boxfix`) is a CLI tool and library that fixes misaligned ASCII diagram borders in markdown files. LLMs often generate diagrams where content lines are shorter than boundary lines - this tool detects and pads those lines to proper width.
+**boxfix** is a CLI tool and library that fixes misaligned ASCII diagram borders in markdown files. LLMs often generate diagrams where content lines are shorter than boundary lines - this tool detects and pads those lines to proper width.
 
 ## Workflow
 
@@ -27,14 +27,14 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
 ```bash
 # Build (uses tsup)
-npm run build
+pnpm build
 
 # Run tests
-npm test              # Watch mode
-npm run test:run      # Single run
+pnpm test              # Watch mode
+pnpm test:run          # Single run
 
 # Type checking
-npm run typecheck
+pnpm typecheck
 
 # CLI usage (after build)
 ./dist/cli.js input.md              # Output to stdout

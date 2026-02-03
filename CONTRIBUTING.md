@@ -19,17 +19,17 @@ Thank you for your interest in contributing to boxfix! This document provides gu
 
 2. Install dependencies:
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. Build the project:
    ```bash
-   npm run build
+   pnpm build
    ```
 
 4. Run tests to verify setup:
    ```bash
-   npm run test:run
+   ppnpm test:run
    ```
 
 ## Development Workflow
@@ -52,9 +52,9 @@ The `main` branch is protected with the following rules:
    ```
 
 2. Make your changes, ensuring:
-   - Tests pass: `npm run test:run`
-   - Types check: `npm run typecheck`
-   - Build succeeds: `npm run build`
+   - Tests pass: `ppnpm test:run`
+   - Types check: `pnpm typecheck`
+   - Build succeeds: `pnpm build`
 
 3. Commit using [conventional commits](#commit-conventions)
 
@@ -117,8 +117,8 @@ examples/             # Before/after diagram examples
 ### Running Tests
 
 ```bash
-npm test              # Watch mode
-npm run test:run      # Single run (CI)
+pnpm test              # Watch mode
+ppnpm test:run      # Single run (CI)
 ```
 
 ### Writing Tests
@@ -183,7 +183,7 @@ Releases are managed through [Changesets](https://github.com/changesets/changese
 
 1. Create a changeset when making user-facing changes:
    ```bash
-   npm run changeset
+   pnpm changeset
    ```
 
 2. Follow the prompts to describe your changes
