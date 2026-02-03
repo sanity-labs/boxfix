@@ -47,6 +47,16 @@ export function boxfixMarkdown(markdown: string): BoxfixResult {
   let totalStats = emptyStats();
 
   for (const block of blocks) {
+    // Skip blocks marked with nofix language tag
+    if (block.language === "nofix" || block.language?.endsWith("-nofix")) {
+      totalStats = mergeStats(totalStats, {
+        linesFixed: 0,
+        blocksProcessed: 1,
+        diagramsFound: 0,
+      });
+      continue;
+    }
+
     // Check if this code block contains a diagram
     if (!isDiagram(block.content)) {
       totalStats = mergeStats(totalStats, {
