@@ -351,6 +351,29 @@ const x = 1;
     expect(result.stats.blocksProcessed).toBe(1);
   });
 
+  it("skips code blocks with nofix language tag", () => {
+    const input = `\`\`\`nofix
+┌───┐
+│ x│
+└───┘
+\`\`\``;
+    const result = boxfixMarkdown(input);
+    expect(result.fixed).toBe(input);
+    expect(result.stats.linesFixed).toBe(0);
+    expect(result.stats.diagramsFound).toBe(0);
+  });
+
+  it("skips code blocks with -nofix suffix", () => {
+    const input = `\`\`\`text-nofix
+┌───┐
+│ x│
+└───┘
+\`\`\``;
+    const result = boxfixMarkdown(input);
+    expect(result.fixed).toBe(input);
+    expect(result.stats.linesFixed).toBe(0);
+  });
+
   it("handles multiple code blocks", () => {
     const input = `\`\`\`
 ┌───┐

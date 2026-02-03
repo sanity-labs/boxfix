@@ -2,7 +2,7 @@
 
 LLMs generate ASCII diagrams with broken borders. This fixes them.
 
-```
+```nofix
 Before                          After
 ┌─────────────────────┐         ┌─────────────────────┐
 │ Component A        │    →     │ Component A         │
@@ -14,7 +14,7 @@ Before                          After
 
 LLMs generate ASCII diagrams with misaligned right borders. The top and bottom boundary lines (`┌───┐`, `└───┘`) are usually correct because they're repetitive patterns. But content lines with variable text end up short:
 
-```
+```nofix
 ┌─────────────────────────┐
 │ This line is too short│   ← Right border doesn't align
 │ API Gateway           │   ← Same problem here
@@ -102,7 +102,7 @@ boxfix doc1.md doc2.md --in-place
 
 The key insight: **boundary lines are reliable, content lines aren't**.
 
-```
+```nofix
 ┌─────────────────────┐  ← Boundary: LLMs get this right (repetitive)
 │ Content here       │   ← Content: LLMs mess this up (variable)
 │ More content       │   ← Content: Same problem
@@ -138,7 +138,7 @@ The key insight: **boundary lines are reliable, content lines aren't**.
 ```
 ┌─────────────────┐
 │ ┌─────────────┐ │
-│ │ Inner      │  │
+│ │ Inner       │ │
 │ └─────────────┘ │
 └─────────────────┘
 ```
@@ -149,6 +149,7 @@ The key insight: **boundary lines are reliable, content lines aren't**.
 - Lines without border characters
 - Already-aligned diagrams
 - Non-diagram code blocks
+- Code blocks with `nofix` or `*-nofix` language tag (e.g., ` ```nofix ` or ` ```text-nofix `)
 
 ## Programmatic API
 
@@ -338,6 +339,10 @@ If your diagram has content that overflows the boundaries, you'll need to either
 2. Shorten the content
 
 Boundary expansion is planned for a future release.
+
+## Vibecoded
+
+This entire library was built with [Claude Code](https://claude.ai/code) and Claude Opus 4.5. Every line of code, test, and documentation was generated through AI-assisted development.
 
 ## License
 
