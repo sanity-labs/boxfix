@@ -5,6 +5,6 @@
     "boxfix": "1.0.0"
   },
   "changesets": [
-    "fix-npx-cli"
+    "dark-regions-deny"
   ]
 }

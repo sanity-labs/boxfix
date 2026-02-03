@@ -1,5 +1,11 @@
 # boxfix
 
+## 1.0.1-beta.2
+
+### Patch Changes
+
+- 9591a1d: replaces deprecated glob package
+
 ## 1.0.1-beta.0
 
 ### Patch Changes
