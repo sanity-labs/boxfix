@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { boxfix, boxfixDiagram } from "../src/boxfix.js";
 import { boxfixMarkdown } from "../src/markdown.js";
-import { getDisplayWidth, expandTabs } from "../src/width.js";
-import { isDiagram, isBoundaryLine, isContentLine, isTreeLine } from "../src/diagram-detector.js";
+import { getDisplayWidth, expandTabs, sliceByDisplayColumn, mapDisplayColumnToCharIndex } from "../src/width.js";
+import { isDiagram, isBoundaryLine, isContentLine, isTreeLine, hasInnerBoundary } from "../src/diagram-detector.js";
 import { extractFilePath } from "../src/cli.js";
 
 describe("getDisplayWidth", () => {
@@ -90,6 +90,50 @@ describe("isContentLine", () => {
   });
 });
 
+describe("hasInnerBoundary", () => {
+  it("detects inner boundary in content line", () => {
+    expect(hasInnerBoundary("│  ┌─────────┐     │")).toBe(true);
+  });
+
+  it("detects ASCII inner boundary", () => {
+    expect(hasInnerBoundary("| +-------+        |")).toBe(true);
+  });
+
+  it("returns false for content line without inner boundary", () => {
+    expect(hasInnerBoundary("│ just content     │")).toBe(false);
+  });
+
+  it("returns false for boundary line", () => {
+    expect(hasInnerBoundary("┌─────────────────┐")).toBe(false);
+  });
+});
+
+describe("sliceByDisplayColumn", () => {
+  it("slices ASCII string by columns", () => {
+    expect(sliceByDisplayColumn("hello world", 0, 5)).toBe("hello");
+  });
+
+  it("slices string with box chars", () => {
+    expect(sliceByDisplayColumn("│ content │", 0, 3)).toBe("│ c");
+  });
+
+  it("handles CJK characters (2 columns each)", () => {
+    // "日本" = 4 columns
+    expect(sliceByDisplayColumn("日本語", 0, 4)).toBe("日本");
+  });
+});
+
+describe("mapDisplayColumnToCharIndex", () => {
+  it("maps column to index for ASCII", () => {
+    expect(mapDisplayColumnToCharIndex("hello", 3)).toBe(3);
+  });
+
+  it("maps column to index with CJK", () => {
+    // "日" is at index 0-1 (columns 0-1), "本" is at index 1 (columns 2-3)
+    expect(mapDisplayColumnToCharIndex("日本語", 2)).toBe(1);
+  });
+});
+
 describe("isTreeLine", () => {
   it("detects tree prefix ├", () => {
     expect(isTreeLine("├── child")).toBe(true);
@@ -169,6 +213,79 @@ describe("boxfixDiagram", () => {
     const expected = `+-------+
 | hello |
 +-------+`;
+    const { result } = boxfixDiagram(input);
+    expect(result).toBe(expected);
+  });
+
+  it("fixes nested boxes - inner box content", () => {
+    // The inner box content "Inner Box" is too short - needs padding
+    const input = `┌───────────────────────────────┐
+│ Outer Container               │
+│  ┌─────────────────────┐      │
+│  │ Inner Box          │       │
+│  └─────────────────────┘      │
+└───────────────────────────────┘`;
+    const expected = `┌───────────────────────────────┐
+│ Outer Container               │
+│  ┌─────────────────────┐      │
+│  │ Inner Box           │      │
+│  └─────────────────────┘      │
+└───────────────────────────────┘`;
+    const { result, linesFixed } = boxfixDiagram(input);
+    expect(result).toBe(expected);
+    expect(linesFixed).toBe(1);
+  });
+
+  it("fixes deeply nested boxes (3 levels)", () => {
+    const input = `┌─────────────────────────────────────┐
+│ Level 1                            │
+│  ┌───────────────────────────────┐  │
+│  │ Level 2                      │   │
+│  │  ┌─────────────────────────┐ │   │
+│  │  │ Level 3               │  │    │
+│  │  └─────────────────────────┘ │   │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘`;
+    const expected = `┌─────────────────────────────────────┐
+│ Level 1                             │
+│  ┌───────────────────────────────┐  │
+│  │ Level 2                       │  │
+│  │  ┌─────────────────────────┐  │  │
+│  │  │ Level 3                 │  │  │
+│  │  └─────────────────────────┘  │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘`;
+    const { result } = boxfixDiagram(input);
+    expect(result).toBe(expected);
+  });
+
+  it("fixes multiple inner boxes side by side", () => {
+    // Content lines have 3 spaces between boxes to align with boundary (2 spaces + 1 for offset)
+    const input = `┌─────────────────────────────────────┐
+│ ┌─────────┐  ┌─────────┐           │
+│ │ Box A  │   │ Box B  │           │
+│ └─────────┘  └─────────┘           │
+└─────────────────────────────────────┘`;
+    const expected = `┌─────────────────────────────────────┐
+│ ┌─────────┐  ┌─────────┐            │
+│ │ Box A   │  │ Box B   │            │
+│ └─────────┘  └─────────┘            │
+└─────────────────────────────────────┘`;
+    const { result } = boxfixDiagram(input);
+    expect(result).toBe(expected);
+  });
+
+  it("fixes ASCII nested boxes", () => {
+    const input = `+-------------------+
+| +-------+        |
+| | inner|         |
+| +-------+        |
++-------------------+`;
+    const expected = `+-------------------+
+| +-------+         |
+| | inner |         |
+| +-------+         |
++-------------------+`;
     const { result } = boxfixDiagram(input);
     expect(result).toBe(expected);
   });

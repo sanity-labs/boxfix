@@ -1,4 +1,5 @@
 import { BOX_CHARS, CORNER_CHARS } from "./types.js";
+import { getDisplayWidth } from "./width.js";
 
 /**
  * Check if content appears to be an ASCII diagram (as opposed to regular code)
@@ -118,4 +119,93 @@ export function isContentLine(line: string): boolean {
   const lastChar = trimmed[trimmed.length - 1];
 
   return verticalChars.includes(firstChar) && verticalChars.includes(lastChar);
+}
+
+/**
+ * Check if a content line contains an inner box boundary
+ * (a corner character that is not at the start of the line)
+ */
+export function hasInnerBoundary(line: string): boolean {
+  const trimmed = line.trim();
+
+  // Must be a content line first
+  if (!isContentLine(line)) {
+    return false;
+  }
+
+  // Check for corner chars not at position 0
+  const topCorners = ["┌", "+"];
+
+  // Skip first character (the outer border) and look for inner boundaries
+  for (let i = 1; i < trimmed.length - 1; i++) {
+    if (topCorners.includes(trimmed[i])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Find the display column of a top-left corner character in a line
+ * Returns -1 if not found
+ */
+export function findInnerTopCornerColumn(line: string, startSearchCol = 0): number {
+  const topCorners = ["┌", "+"];
+  let currentCol = 0;
+
+  for (const char of line) {
+    if (currentCol > startSearchCol && topCorners.includes(char)) {
+      return currentCol;
+    }
+    currentCol += getDisplayWidth(char);
+  }
+
+  return -1;
+}
+
+/**
+ * Find the display column of a bottom-left corner character at a specific column
+ * Returns true if a bottom corner exists at the given column
+ */
+export function hasBottomCornerAtColumn(line: string, col: number): boolean {
+  const bottomCorners = ["└", "+"];
+  let currentCol = 0;
+
+  for (const char of line) {
+    if (currentCol === col) {
+      return bottomCorners.includes(char);
+    }
+    if (currentCol > col) {
+      return false;
+    }
+    currentCol += getDisplayWidth(char);
+  }
+
+  return false;
+}
+
+/**
+ * Find the right edge of a box boundary starting at a given column
+ * Returns the column after the last character of the boundary
+ */
+export function findBoundaryEndColumn(line: string, startCol: number): number {
+  const horizontalChars = ["─", "━", "-", "="];
+  const endCorners = ["┐", "┘", "+"];
+  let currentCol = 0;
+  let lastBoundaryCol = startCol;
+
+  for (const char of line) {
+    if (currentCol > startCol) {
+      if (endCorners.includes(char)) {
+        return currentCol + getDisplayWidth(char);
+      }
+      if (horizontalChars.includes(char) || char === " ") {
+        lastBoundaryCol = currentCol + getDisplayWidth(char);
+      }
+    }
+    currentCol += getDisplayWidth(char);
+  }
+
+  return lastBoundaryCol;
 }

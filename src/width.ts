@@ -35,6 +35,54 @@ export function expandTabs(str: string, tabSize = 8): string {
 }
 
 /**
+ * Map a display column to the character index in a string
+ * Returns the character index that starts at or after the given display column
+ */
+export function mapDisplayColumnToCharIndex(str: string, targetCol: number): number {
+  let currentCol = 0;
+  let charIndex = 0;
+
+  for (const char of str) {
+    if (currentCol >= targetCol) {
+      return charIndex;
+    }
+    currentCol += stringWidth(char);
+    charIndex++;
+  }
+
+  return charIndex;
+}
+
+/**
+ * Slice a string by display columns (handles CJK, emoji correctly)
+ * Returns the substring from startCol to endCol (exclusive)
+ */
+export function sliceByDisplayColumn(
+  line: string,
+  startCol: number,
+  endCol: number
+): string {
+  const startIndex = mapDisplayColumnToCharIndex(line, startCol);
+  const endIndex = mapDisplayColumnToCharIndex(line, endCol);
+  return line.slice(startIndex, endIndex);
+}
+
+/**
+ * Replace a portion of a string by display columns
+ * Replaces characters from startCol to endCol with replacement string
+ */
+export function replaceByDisplayColumn(
+  line: string,
+  startCol: number,
+  endCol: number,
+  replacement: string
+): string {
+  const startIndex = mapDisplayColumnToCharIndex(line, startCol);
+  const endIndex = mapDisplayColumnToCharIndex(line, endCol);
+  return line.slice(0, startIndex) + replacement + line.slice(endIndex);
+}
+
+/**
  * Pad a string to a target display width by inserting spaces before the last character
  */
 export function padBeforeLastChar(

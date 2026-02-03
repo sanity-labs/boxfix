@@ -60,3 +60,17 @@ export const RIGHT_BORDER_CHARS: string[] = [...BOX_CHARS.vertical, ...BOX_CHARS
  * Characters that indicate a boundary line (top/bottom of box)
  */
 export const CORNER_CHARS: string[] = [...BOX_CHARS.corners, ...BOX_CHARS.asciiCorners];
+
+/**
+ * A detected inner box region within a diagram
+ */
+export interface BoxRegion {
+  /** Line index where inner box starts (top boundary) */
+  startLine: number;
+  /** Line index where inner box ends (bottom boundary) */
+  endLine: number;
+  /** Display column where inner box starts */
+  startCol: number;
+  /** Display column where inner box ends */
+  endCol: number;
+}
