@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { program } from "commander";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { glob } from "glob";
 import { boxfixMarkdown } from "./markdown.js";
@@ -282,11 +282,20 @@ program
   });
 
 // Only run when executed directly, not when imported
-const isMain =
-  typeof import.meta.url !== "undefined" &&
-  process.argv[1] &&
-  fileURLToPath(import.meta.url) === process.argv[1];
+// Use realpathSync to resolve symlinks (npx creates symlinks in .bin/)
+function checkIsMain(): boolean {
+  if (typeof import.meta.url === "undefined" || !process.argv[1]) {
+    return false;
+  }
+  try {
+    const moduleRealPath = realpathSync(fileURLToPath(import.meta.url));
+    const argvRealPath = realpathSync(process.argv[1]);
+    return moduleRealPath === argvRealPath;
+  } catch {
+    return false;
+  }
+}
 
-if (isMain) {
+if (checkIsMain()) {
   program.parse();
 }

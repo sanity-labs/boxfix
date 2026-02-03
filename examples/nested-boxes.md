@@ -1,27 +1,6 @@
 # Nested Boxes
 
-Boxes within boxes - each inner box has its own boundary that content aligns to.
-
-## Before
-
-```
-┌───────────────────────────────┐
-│ Outer Container               │
-│                               │
-│  ┌─────────────────────┐      │
-│  │ Inner Box          │       │
-│  │ with content       │       │
-│  └─────────────────────┘      │
-│                               │
-│  ┌─────────────────────┐      │
-│  │ Another Inner      │       │
-│  │ More content       │       │
-│  └─────────────────────┘      │
-│                               │
-└───────────────────────────────┘
-```
-
-## After (Fixed)
+Boxes within boxes - each box has its own boundary that content aligns to.
 
 ```
 ┌───────────────────────────────┐
@@ -39,8 +18,6 @@ Boxes within boxes - each inner box has its own boundary that content aligns to.
 │                               │
 └───────────────────────────────┘
 ```
-
-## What Changed
 
 - Outer box content lines padded to match the 33-character outer boundary
 - Inner box content lines padded to match their 23-character boundaries
