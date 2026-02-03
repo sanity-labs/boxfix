@@ -17,13 +17,13 @@ This directory contains examples of diagrams that boxfix can fix. Each file show
 Fix a single example and see the output:
 
 ```bash
-npx @sanity-labs/boxfix examples/simple-box.md
+npx boxfix examples/simple-box.md
 ```
 
 Check if examples need fixing (useful in CI):
 
 ```bash
-npx @sanity-labs/boxfix --check examples/*.md
+npx boxfix --check examples/*.md
 ```
 
 ## What Gets Fixed

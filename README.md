@@ -31,13 +31,13 @@ See the [`examples/`](./examples/) directory for more before/after examples.
 ## Installation
 
 ```bash
-npm install -g @sanity-labs/boxfix
+npm install -g boxfix
 ```
 
 Or use directly with npx:
 
 ```bash
-npx @sanity-labs/boxfix input.md
+npx boxfix input.md
 ```
 
 ## Usage
@@ -153,7 +153,7 @@ The key insight: **boundary lines are reliable, content lines aren't**.
 ## Programmatic API
 
 ```typescript
-import { boxfixMarkdown, boxfix } from '@sanity-labs/boxfix';
+import { boxfixMarkdown, boxfix } from 'boxfix';
 
 // Process markdown with code blocks
 const result = boxfixMarkdown(markdownContent);
@@ -181,7 +181,7 @@ const diagram = boxfix(diagramContent);
 ### Type Exports
 
 ```typescript
-import type { BoxfixResult, BoxfixStats, CodeBlock } from '@sanity-labs/boxfix';
+import type { BoxfixResult, BoxfixStats, CodeBlock } from 'boxfix';
 
 interface BoxfixResult {
   fixed: string;          // The fixed content
@@ -214,7 +214,7 @@ repos:
     hooks:
       - id: boxfix
         name: Fix diagram borders
-        entry: npx @sanity-labs/boxfix --check
+        entry: npx boxfix --check
         language: system
         files: '\.md$'
 ```
@@ -233,7 +233,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npx @sanity-labs/boxfix --check **/*.md
+      - run: npx boxfix --check **/*.md
 ```
 
 ### AI Agent Hooks
@@ -271,7 +271,7 @@ Add to `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "npx @sanity-labs/boxfix --hook"
+            "command": "npx boxfix --hook"
           }
         ]
       }
@@ -290,7 +290,7 @@ Add to `.cursor/hooks.json`:
 {
   "afterFileEdit": [
     {
-      "command": "npx @sanity-labs/boxfix --hook"
+      "command": "npx boxfix --hook"
     }
   ]
 }
@@ -306,7 +306,7 @@ Add to `.windsurf/hooks.json`:
 {
   "post_write_code": [
     {
-      "command": "npx @sanity-labs/boxfix --hook"
+      "command": "npx boxfix --hook"
     }
   ]
 }
