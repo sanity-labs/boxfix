@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { boxfix, boxfixDiagram } from "../src/boxfix.js";
 import { boxfixMarkdown } from "../src/markdown.js";
 import { getDisplayWidth, expandTabs, sliceByDisplayColumn, mapDisplayColumnToCharIndex } from "../src/width.js";
-import { isDiagram, isBoundaryLine, isContentLine, isTreeLine, hasInnerBoundary } from "../src/diagram-detector.js";
+import { isDiagram, isBoundaryLine, isContentLine, isTreeLine, hasInnerBoundary, isConnectorLine } from "../src/diagram-detector.js";
 import { extractFilePath } from "../src/cli.js";
 
 describe("getDisplayWidth", () => {
@@ -76,6 +76,37 @@ describe("isBoundaryLine", () => {
   });
 });
 
+describe("isConnectorLine", () => {
+  it("detects connector line with 3 pipes and whitespace", () => {
+    expect(isConnectorLine("│   │   │")).toBe(true);
+  });
+
+  it("detects connector line with spaces and indentation", () => {
+    expect(isConnectorLine("                    │                 │                 │")).toBe(true);
+  });
+
+  it("detects ASCII connector line", () => {
+    expect(isConnectorLine("|   |   |")).toBe(true);
+  });
+
+  it("rejects table row with content between pipes", () => {
+    expect(isConnectorLine("│ foo │ bar │")).toBe(false);
+  });
+
+  it("rejects line with only 2 pipes (normal content)", () => {
+    expect(isConnectorLine("│ content │")).toBe(false);
+  });
+
+  it("rejects line with only 2 pipes and whitespace", () => {
+    expect(isConnectorLine("│   │")).toBe(false);
+  });
+
+  it("rejects short lines", () => {
+    expect(isConnectorLine("│")).toBe(false);
+    expect(isConnectorLine("││")).toBe(false);
+  });
+});
+
 describe("isContentLine", () => {
   it("detects line ending with │", () => {
     expect(isContentLine("│ content │")).toBe(true);
@@ -87,6 +118,11 @@ describe("isContentLine", () => {
 
   it("rejects boundary line", () => {
     expect(isContentLine("┌───┐")).toBe(false);
+  });
+
+  it("rejects connector line with multiple pipes", () => {
+    expect(isConnectorLine("│   │   │")).toBe(true);
+    expect(isContentLine("│   │   │")).toBe(false);
   });
 });
 
@@ -288,6 +324,27 @@ describe("boxfixDiagram", () => {
 +-------------------+`;
     const { result } = boxfixDiagram(input);
     expect(result).toBe(expected);
+  });
+
+  it("does not modify connector lines between side-by-side boxes", () => {
+    // Regression test: connector lines with multiple pipes should not be padded
+    const input = `┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│ Box 1       │ │ Box 2       │ │ Box 3       │
+└─────────────┘ └─────────────┘ └─────────────┘
+                │             │             │
+                └─────────────┴─────────────┘`;
+    const { result, linesFixed } = boxfixDiagram(input);
+    expect(result).toBe(input);
+    expect(linesFixed).toBe(0);
+  });
+
+  it("does not modify spaced connector lines (real-world bug)", () => {
+    // Regression test from soderlind/admin-coach-tours
+    // The line "│                 │                 │" should not be padded
+    const input = `                    │                 │                 │`;
+    // This line should not be treated as a content line
+    expect(isContentLine(input)).toBe(false);
+    expect(isConnectorLine(input)).toBe(true);
   });
 });
 

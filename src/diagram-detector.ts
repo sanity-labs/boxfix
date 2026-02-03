@@ -102,6 +102,48 @@ export function isBoundaryLine(line: string): boolean {
 }
 
 /**
+ * Check if a line is a connector line between multiple boxes
+ * Connector lines have more than 2 vertical bars with only whitespace between them
+ * Example: "│   │   │" (connector) vs "│ foo │ bar │" (table row with content)
+ */
+export function isConnectorLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (trimmed.length < 3) return false;
+
+  const verticalChars: string[] = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical];
+
+  // Split by vertical chars and collect segments
+  const segments: string[] = [];
+  let current = "";
+
+  for (const char of trimmed) {
+    if (verticalChars.includes(char)) {
+      segments.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  segments.push(current); // last segment after final pipe
+
+  // Count vertical chars (segments.length - 1)
+  const pipeCount = segments.length - 1;
+
+  // Need more than 2 vertical chars to be a connector line
+  if (pipeCount <= 2) return false;
+
+  // Check interior segments (skip first and last as they can be empty)
+  // All interior segments must be whitespace-only
+  for (let i = 1; i < segments.length - 1; i++) {
+    if (segments[i].trim() !== "") {
+      return false; // Has non-whitespace content
+    }
+  }
+
+  return true;
+}
+
+/**
  * Check if a line is a content line that should be normalized
  * Content lines both START and END with a vertical border character
  * and have content between them (minimum 3 chars: border + content + border)
@@ -117,6 +159,11 @@ export function isContentLine(line: string): boolean {
   // Check if line both starts and ends with a vertical border
   const firstChar = trimmed[0];
   const lastChar = trimmed[trimmed.length - 1];
+
+  // Exclude connector lines (multiple pipes with only whitespace between)
+  if (isConnectorLine(line)) {
+    return false;
+  }
 
   return verticalChars.includes(firstChar) && verticalChars.includes(lastChar);
 }
