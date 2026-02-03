@@ -4,20 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**boxfix** (`@sanity-labs/boxfix`) is a CLI tool and library that fixes misaligned ASCII diagram borders in markdown files. LLMs often generate diagrams where content lines are shorter than boundary lines - this tool detects and pads those lines to proper width.
+**boxfix** is a CLI tool and library that fixes misaligned ASCII diagram borders in markdown files. LLMs often generate diagrams where content lines are shorter than boundary lines - this tool detects and pads those lines to proper width.
+
+## Workflow
+
+This project uses a PR-based workflow with branch protection on `main`:
+
+- **No direct pushes to main** - All changes require a pull request
+- **CI must pass** - Tests run on Node 22 and 24
+- **Approval required** - At least 1 review needed before merge
+- **Conventional commits** - Use `feat:`, `fix:`, `docs:`, etc.
+
+When making changes:
+1. Create a feature branch from `main`
+2. Make changes and ensure CI passes locally
+3. Open a PR and wait for review
+4. Squash or rebase merge when approved
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 
 ## Commands
 
 ```bash
 # Build (uses tsup)
-npm run build
+pnpm build
 
 # Run tests
-npm test              # Watch mode
-npm run test:run      # Single run
+pnpm test              # Watch mode
+pnpm test:run          # Single run
 
 # Type checking
-npm run typecheck
+pnpm typecheck
 
 # CLI usage (after build)
 ./dist/cli.js input.md              # Output to stdout
