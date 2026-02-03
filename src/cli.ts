@@ -2,7 +2,7 @@
 import { program } from "commander";
 import { readFileSync, writeFileSync, existsSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { glob } from "glob";
+import { glob } from "tinyglobby";
 import { boxfixMarkdown } from "./markdown.js";
 
 /**
