@@ -1,8 +1,77 @@
 #!/usr/bin/env node
 import { program } from "commander";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { glob } from "glob";
 import { boxfixMarkdown } from "./markdown.js";
+
+/**
+ * Extract file path from common JSON field patterns used by AI agents.
+ * Supports multiple formats for agent-agnostic integration.
+ */
+export function extractFilePath(json: unknown): string | null {
+  if (!json || typeof json !== "object") return null;
+  const obj = json as Record<string, unknown>;
+
+  // Check common path locations (order of precedence)
+  const candidates = [
+    (obj.tool_input as Record<string, unknown>)?.file_path, // Claude Code, Cursor
+    obj.file_path, // Generic
+    obj.filePath, // camelCase variant
+    (obj.input as Record<string, unknown>)?.file_path, // Nested input object
+    obj.path, // Minimal
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.length > 0) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+/**
+ * Read JSON from stdin and extract file path for hook processing.
+ * Returns null if stdin is TTY, JSON is invalid, or path is not a markdown file.
+ */
+async function readHookInput(): Promise<string | null> {
+  // Return null if stdin is TTY (no piped input)
+  if (process.stdin.isTTY) {
+    return null;
+  }
+
+  // Read all stdin
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk);
+  }
+  const input = Buffer.concat(chunks).toString("utf-8").trim();
+
+  if (!input) {
+    return null;
+  }
+
+  // Parse JSON
+  let json: unknown;
+  try {
+    json = JSON.parse(input);
+  } catch {
+    return null;
+  }
+
+  // Extract file path
+  const filePath = extractFilePath(json);
+  if (!filePath) {
+    return null;
+  }
+
+  // Only process markdown files
+  if (!filePath.endsWith(".md") && !filePath.endsWith(".markdown")) {
+    return null;
+  }
+
+  return filePath;
+}
 
 interface FileResult {
   file: string;
@@ -25,15 +94,44 @@ program
   .name("boxfix")
   .description("Fix misaligned ASCII diagram borders in markdown files")
   .version("1.0.0")
-  .argument("<patterns...>", "File path(s) or glob pattern(s) to process")
+  .argument("[patterns...]", "File path(s) or glob pattern(s) to process")
   .option("-o, --output <file>", "Output to file (only valid with single input)")
   .option("-i, --in-place", "Modify files in place")
   .option("-d, --dry-run", "Show what would be changed without modifying files")
   .option("-q, --quiet", "Suppress output except errors")
   .option("-c, --check", "Check if files need fixing (exit code 1 if fixes needed)")
   .option("-j, --json", "Output results as JSON")
+  .option(
+    "--hook",
+    "Read JSON from stdin, extract file path, and fix in-place (for agent integration)"
+  )
   .action(async (patterns: string[], options) => {
-    const { output, inPlace, dryRun, quiet, check, json } = options;
+    const { output, inPlace, dryRun, quiet, check, json, hook } = options;
+
+    // Hook mode: read JSON from stdin and process file
+    if (hook) {
+      const filePath = await readHookInput();
+      if (!filePath || !existsSync(filePath)) {
+        process.exit(0); // Silent success
+      }
+
+      try {
+        const content = readFileSync(filePath, "utf-8");
+        const result = boxfixMarkdown(content);
+        if (result.stats.linesFixed > 0) {
+          writeFileSync(filePath, result.fixed, "utf-8");
+        }
+      } catch {
+        // Ignore errors in hook mode
+      }
+      process.exit(0);
+    }
+
+    // Normal mode requires patterns
+    if (!patterns || patterns.length === 0) {
+      console.error("Error: No files specified");
+      process.exit(1);
+    }
 
     // Expand glob patterns
     const files: string[] = [];
@@ -183,4 +281,12 @@ program
     }
   });
 
-program.parse();
+// Only run when executed directly, not when imported
+const isMain =
+  typeof import.meta.url !== "undefined" &&
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isMain) {
+  program.parse();
+}

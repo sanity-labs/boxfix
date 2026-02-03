@@ -5,8 +5,8 @@ Fix misaligned ASCII diagram borders in markdown files.
 ```
 Before                          After
 ┌─────────────────────┐         ┌─────────────────────┐
-│ Component A        │    →    │ Component A         │
-│ with content       │         │ with content        │
+│ Component A        │    →     │ Component A         │
+│ with content       │          │ with content        │
 └─────────────────────┘         └─────────────────────┘
 ```
 
@@ -71,6 +71,7 @@ boxfix doc1.md doc2.md --in-place
 | `--json` | `-j` | Output results as JSON |
 | `--dry-run` | `-d` | Preview changes without modifying |
 | `--quiet` | `-q` | Suppress output except errors |
+| `--hook` | | Read JSON from stdin, extract file path, fix in-place (for AI agents) |
 
 ### JSON Output
 
@@ -233,11 +234,31 @@ jobs:
       - run: npx @sanity-labs/boxfix --check **/*.md
 ```
 
-### Claude Code
+### AI Agent Hooks
 
-Automatically fix diagrams as Claude writes them using [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks).
+The `--hook` flag enables seamless integration with AI coding agents. It reads JSON from stdin, extracts the file path from common field patterns, and silently processes markdown files.
 
-Add this to your project's `.claude/settings.json`:
+**Key features:**
+- Reads JSON payload from stdin (as provided by agent hooks)
+- Extracts file path from common JSON structures
+- Silently skips non-markdown files
+- Always exits 0 to never break agentic workflows
+- Works with Claude Code, Cursor, Windsurf, and other agents
+
+**Supported JSON formats:**
+
+| Format | Example | Used by |
+|--------|---------|---------|
+| `tool_input.file_path` | `{"tool_input":{"file_path":"..."}}` | Claude Code |
+| `file_path` | `{"file_path":"..."}` | Cursor, Windsurf |
+| `filePath` | `{"filePath":"..."}` | Generic (camelCase) |
+| `path` | `{"path":"..."}` | Minimal |
+
+#### Claude Code
+
+Automatically fix diagrams as Claude writes them using [hooks](https://code.claude.com/docs/en/hooks).
+
+Add to `.claude/settings.json`:
 
 ```json
 {
@@ -248,7 +269,7 @@ Add this to your project's `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "npx @sanity-labs/boxfix \"$(jq -r '.tool_input.file_path // empty')\" --in-place 2>/dev/null || true"
+            "command": "npx @sanity-labs/boxfix --hook"
           }
         ]
       }
@@ -257,7 +278,45 @@ Add this to your project's `.claude/settings.json`:
 }
 ```
 
-This runs boxfix on any markdown file Claude creates or edits, silently fixing diagram borders in the background.
+#### Cursor
+
+Cursor 1.7+ supports [hooks](https://cursor.com/docs/agent/hooks) for agent lifecycle control.
+
+Add to `.cursor/hooks.json`:
+
+```json
+{
+  "afterFileEdit": [
+    {
+      "command": "npx @sanity-labs/boxfix --hook"
+    }
+  ]
+}
+```
+
+#### Windsurf
+
+Windsurf (Codeium) supports [Cascade Hooks](https://docs.windsurf.com/windsurf/cascade/hooks) for automation.
+
+Add to `.windsurf/hooks.json`:
+
+```json
+{
+  "post_write_code": [
+    {
+      "command": "npx @sanity-labs/boxfix --hook"
+    }
+  ]
+}
+```
+
+#### OpenCode
+
+OpenCode supports plugins for extensibility. You can use the [oh-my-opencode](https://www.npmjs.com/package/oh-my-opencode) package which provides Claude Code hook compatibility, or create a custom plugin.
+
+#### Other Agents
+
+For any agent that pipes JSON with a file path to stdin on file edit events, the `--hook` flag should work out of the box. The tool checks for file paths in common locations (see table above) and silently exits 0 if no valid markdown path is found.
 
 ## Why "boxfix"?
 

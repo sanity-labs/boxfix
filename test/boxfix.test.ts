@@ -3,6 +3,7 @@ import { boxfix, boxfixDiagram } from "../src/boxfix.js";
 import { boxfixMarkdown } from "../src/markdown.js";
 import { getDisplayWidth, expandTabs } from "../src/width.js";
 import { isDiagram, isBoundaryLine, isContentLine, isTreeLine } from "../src/diagram-detector.js";
+import { extractFilePath } from "../src/cli.js";
 
 describe("getDisplayWidth", () => {
   it("calculates width of ASCII string", () => {
@@ -252,5 +253,65 @@ Text between.
     expect(result.stats.linesFixed).toBe(2);
     expect(result.stats.diagramsFound).toBe(2);
     expect(result.stats.blocksProcessed).toBe(2);
+  });
+});
+
+describe("extractFilePath", () => {
+  it("extracts path from Claude Code format (tool_input.file_path)", () => {
+    const json = { tool_input: { file_path: "docs/readme.md" } };
+    expect(extractFilePath(json)).toBe("docs/readme.md");
+  });
+
+  it("extracts path from generic format (file_path)", () => {
+    const json = { file_path: "test.md" };
+    expect(extractFilePath(json)).toBe("test.md");
+  });
+
+  it("extracts path from camelCase format (filePath)", () => {
+    const json = { filePath: "example.md" };
+    expect(extractFilePath(json)).toBe("example.md");
+  });
+
+  it("extracts path from nested input format (input.file_path)", () => {
+    const json = { input: { file_path: "nested/file.md" } };
+    expect(extractFilePath(json)).toBe("nested/file.md");
+  });
+
+  it("extracts path from minimal format (path)", () => {
+    const json = { path: "simple.md" };
+    expect(extractFilePath(json)).toBe("simple.md");
+  });
+
+  it("prefers tool_input.file_path over other fields", () => {
+    const json = {
+      tool_input: { file_path: "priority.md" },
+      file_path: "fallback.md",
+      path: "last.md",
+    };
+    expect(extractFilePath(json)).toBe("priority.md");
+  });
+
+  it("returns null for empty object", () => {
+    expect(extractFilePath({})).toBe(null);
+  });
+
+  it("returns null for null input", () => {
+    expect(extractFilePath(null)).toBe(null);
+  });
+
+  it("returns null for non-object input", () => {
+    expect(extractFilePath("string")).toBe(null);
+    expect(extractFilePath(123)).toBe(null);
+    expect(extractFilePath(undefined)).toBe(null);
+  });
+
+  it("returns null for empty string path", () => {
+    const json = { file_path: "" };
+    expect(extractFilePath(json)).toBe(null);
+  });
+
+  it("returns null when no recognizable path field exists", () => {
+    const json = { something_else: "value.md" };
+    expect(extractFilePath(json)).toBe(null);
   });
 });
