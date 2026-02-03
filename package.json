@@ -27,7 +27,9 @@
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "changeset": "changeset",
+    "release": "changeset publish"
   },
   "keywords": [
     "ascii",
@@ -36,7 +38,15 @@
     "alignment",
     "formatter"
   ],
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanity-labs/boxfix.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sanity-labs/boxfix/issues"
+  },
+  "homepage": "https://github.com/sanity-labs/boxfix#readme",
+  "author": "Sanity.io <hello@sanity.io>",
   "license": "MIT",
   "dependencies": {
     "commander": "^12.1.0",
@@ -44,6 +54,7 @@
     "string-width": "^7.2.0"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@types/node": "^25.1.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
