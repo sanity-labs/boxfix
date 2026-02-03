@@ -1,6 +1,6 @@
 {
   "name": "boxfix",
-  "version": "1.0.0",
+  "version": "1.0.1-beta.0",
   "description": "Fix misaligned ASCII diagram borders in markdown files",
   "type": "module",
   "main": "./dist/index.js",
