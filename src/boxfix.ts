@@ -78,6 +78,8 @@ export function boxfixDiagram(content: string): {
     }
 
     // Only fix if we have a target and line is shorter
+    // TODO: Support boundary expansion when content is longer than boundary.
+    // Currently we only pad short lines - we don't expand boundaries to fit overflow.
     if (targetWidth === 0 || lineWidth >= targetWidth) {
       return line;
     }

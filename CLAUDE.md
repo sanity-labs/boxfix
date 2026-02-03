@@ -49,6 +49,10 @@ Markdown → Extract Code Blocks → Detect Diagrams → Fix → Reconstruct
    - Find a boundary width that's 1-3 chars wider than the line
    - Pad spaces before the right border character to match
 
+**Current scope:** The algorithm pads short content to match boundaries. It does NOT expand boundaries when content overflows - that's a planned future enhancement.
+
+See `examples/` directory for before/after examples of various diagram types.
+
 ### Boundary vs Content Detection
 
 - **Boundary lines**: Start AND end with corner chars (`┌┐└┘+`), contain horizontal chars (`─-`)

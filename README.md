@@ -1,6 +1,6 @@
 # boxfix
 
-Fix misaligned ASCII diagram borders in markdown files.
+LLMs generate ASCII diagrams with broken borders. This fixes them.
 
 ```
 Before                          After
@@ -25,6 +25,8 @@ This happens because:
 - LLMs count characters inconsistently when content varies
 - Boundary lines are easy (repeat `─` until done)
 - Content lines require precise space calculation
+
+See the [`examples/`](./examples/) directory for more before/after examples.
 
 ## Installation
 
@@ -136,7 +138,7 @@ The key insight: **boundary lines are reliable, content lines aren't**.
 ```
 ┌─────────────────┐
 │ ┌─────────────┐ │
-│ │ Inner      │ │
+│ │ Inner      │  │
 │ └─────────────┘ │
 └─────────────────┘
 ```
@@ -321,6 +323,21 @@ For any agent that pipes JSON with a file path to stdin on file edit events, the
 ## Why "boxfix"?
 
 It fixes boxes. That's it.
+
+## Limitations
+
+**Current scope:** boxfix pads short content lines to match boundary widths. It assumes the boundary lines are correct and adjusts content to fit.
+
+**What it doesn't do (yet):**
+- Expand boundaries when content is longer than the box
+- Shrink content that overflows
+- Reflow text within boxes
+
+If your diagram has content that overflows the boundaries, you'll need to either:
+1. Manually widen the boundary lines, or
+2. Shorten the content
+
+Boundary expansion is planned for a future release.
 
 ## License
 
