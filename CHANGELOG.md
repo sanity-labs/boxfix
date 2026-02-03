@@ -1,5 +1,11 @@
 # boxfix
 
+## 1.1.1
+
+### Patch Changes
+
+- Fix multi-pipe connector lines being incorrectly padded. Lines with 3+ vertical bars and only whitespace between them (like `│   │   │`) are now correctly identified as connector lines and excluded from padding.
+
 ## 1.0.1
 
 ### Patch Changes
