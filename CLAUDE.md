@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This project uses a PR-based workflow with branch protection on `main`:
 
 - **No direct pushes to main** - All changes require a pull request
-- **CI must pass** - Tests run on Node 20 and 22
+- **CI must pass** - Tests run on Node 22 and 24
 - **Approval required** - At least 1 review needed before merge
 - **Conventional commits** - Use `feat:`, `fix:`, `docs:`, etc.
 

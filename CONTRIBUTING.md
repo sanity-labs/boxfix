@@ -6,7 +6,7 @@ Thank you for your interest in contributing to boxfix! This document provides gu
 
 ### Prerequisites
 
-- Node.js 20 or later
+- Node.js 22 or later (LTS)
 - npm
 
 ### Getting Started
@@ -40,7 +40,7 @@ The `main` branch is protected with the following rules:
 
 - **Pull requests required** - All changes must go through a PR
 - **Approval required** - At least 1 approving review needed
-- **Status checks required** - CI must pass on Node 20 and 22
+- **Status checks required** - CI must pass on Node 22 and 24
 - **No force pushes** - History cannot be rewritten on main
 - **Stale reviews dismissed** - New commits invalidate previous approvals
 
