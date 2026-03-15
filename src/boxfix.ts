@@ -258,7 +258,7 @@ export function boxfixDiagram(content: string): {
     }
   }
   const boundaryWidth = [...boundaryWidths][0];
-  const shouldExpand = boundaryWidths.size === 1 && boundaryLineCount === 2 && maxContentWidth > boundaryWidth;
+  const shouldExpand = boundaryWidths.size === 1 && boundaryLineCount === 2 && regions.length === 0 && maxContentWidth > boundaryWidth;
   const expandTarget = shouldExpand ? maxContentWidth : 0;
 
   // Helper: find column positions of right-side corners/border-ends in a boundary line
