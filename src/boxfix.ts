@@ -366,20 +366,15 @@ export function boxfixDiagram(content: string): {
       if (boundaryPositions.length >= 2 && vertCols.length >= 2 && boundaryPositions.length === vertCols.length) {
         let result = trimmed;
         let totalPadded = 0;
-        // Process right to left to avoid column shifts
+        // Process right to left so insertions don't affect left-side positions
         for (let i = boundaryPositions.length - 1; i >= 0; i--) {
           const targetCol = boundaryPositions[i];
-          const actualCol = vertCols[i].col + totalPadded;
+          // Left-side positions are NOT affected by right-side insertions
+          const actualCol = vertCols[i].col;
           if (targetCol > actualCol) {
             const padAmount = targetCol - actualCol;
-            // Find the char index at actualCol in the result string
-            let currentCol = 0;
-            let insertIdx = 0;
-            for (const char of result) {
-              if (currentCol >= actualCol) break;
-              currentCol += getDisplayWidth(char);
-              insertIdx++;
-            }
+            // charIdx is unaffected by right-side insertions (processing right to left)
+            const insertIdx = vertCols[i].charIdx;
             result = result.slice(0, insertIdx) + " ".repeat(padAmount) + result.slice(insertIdx);
             totalPadded += padAmount;
           }
