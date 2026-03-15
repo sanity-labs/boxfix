@@ -279,13 +279,13 @@ export function boxfixDiagram(content: string): {
 
   // Find all vertical-alignment positions in a boundary (corners + tees)
   // These positions indicate where │ chars should align in content lines
-  const allTees: string[] = [...BOX_CHARS.tees];
+  const allTeesStr: string[] = [...BOX_CHARS.tees];
+  const allCornersStr: string[] = [...BOX_CHARS.corners, ...BOX_CHARS.asciiCorners];
   function findBoundaryVerticalPositions(boundaryLine: string): number[] {
     const positions: number[] = [];
     let col = 0;
-    const first = true;
     for (const char of boundaryLine) {
-      if (allCorners.includes(char) || allTees.includes(char)) {
+      if (allCornersStr.includes(char) || allTeesStr.includes(char)) {
         positions.push(col);
       }
       col += getDisplayWidth(char);
