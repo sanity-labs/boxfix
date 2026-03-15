@@ -124,7 +124,7 @@ function extractInnerBox(lines: string[], region: BoxRegion): ExtractedBox | nul
   // Validate that the extraction produced a valid box
   // The first line should be a boundary line (start with corner character)
   const firstLine = extractedLines[0];
-  const topCorners = ["┌", "╔", "+"];
+  const topCorners = ["┌", "╔", "╭", "+"];
   if (!firstLine || !topCorners.includes(firstLine[0])) {
     // Extraction didn't produce a valid box (misaligned inner box)
     return null;

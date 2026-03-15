@@ -41,7 +41,7 @@ export interface CodeBlock {
  */
 export const BOX_CHARS = {
   // Unicode box-drawing
-  corners: ["┌", "┐", "└", "┘", "╔", "╗", "╚", "╝"],
+  corners: ["┌", "┐", "└", "┘", "╔", "╗", "╚", "╝", "╭", "╮", "╰", "╯"],
   horizontal: ["─", "━", "═"],
   vertical: ["│", "┃", "║"],
   tees: ["├", "┤", "┬", "┴", "┼", "╠", "╣", "╦", "╩", "╬"],
