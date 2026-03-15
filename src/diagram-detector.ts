@@ -151,8 +151,8 @@ export function isConnectorLine(line: string): boolean {
  */
 export function isContentLine(line: string): boolean {
   const trimmed = line.trim();
-  // Need at least 3 chars: start border, some content, end border
-  if (trimmed.length < 3) return false;
+  // Need at least 2 chars: start border + end border (empty content is valid)
+  if (trimmed.length < 2) return false;
 
   const verticalChars: string[] = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical];
 
