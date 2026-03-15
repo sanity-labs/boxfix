@@ -1,4 +1,4 @@
-import { BoxfixResult, BoxfixStats, RIGHT_BORDER_CHARS, BoxRegion } from "./types.js";
+import { BoxfixResult, BoxfixStats, RIGHT_BORDER_CHARS, BOX_CHARS, BoxRegion } from "./types.js";
 import {
   getDisplayWidth,
   expandTabs,
@@ -236,6 +236,24 @@ export function boxfixDiagram(content: string): {
     return { result: lines.join("\n"), linesFixed: totalLinesFixed };
   }
 
+  // Check if content overflows boundaries (only for simple single-width boxes)
+  // Find max content width
+  let maxContentWidth = 0;
+  for (const line of lines) {
+    if (isContentLine(line) && !isTreeLine(line)) {
+      const trimmed = line.trimEnd();
+      const lastChar = trimmed.slice(-1);
+      if (RIGHT_BORDER_CHARS.includes(lastChar)) {
+        maxContentWidth = Math.max(maxContentWidth, getDisplayWidth(trimmed));
+      }
+    }
+  }
+
+  // Expand boundaries if content overflows and all boundaries are the same width
+  const boundaryWidth = [...boundaryWidths][0];
+  const shouldExpand = boundaryWidths.size === 1 && maxContentWidth > boundaryWidth;
+  const expandTarget = shouldExpand ? maxContentWidth : 0;
+
   // Process each line, tracking current box context
   let outerLinesFixed = 0;
   let currentTargetWidth = 0;
@@ -246,6 +264,26 @@ export function boxfixDiagram(content: string): {
     // If this is a boundary line, update current target width
     if (isBoundaryLine(line)) {
       currentTargetWidth = lineWidth;
+
+      // Expand boundary if content overflows
+      if (expandTarget > 0 && lineWidth < expandTarget) {
+        const trimmed = line.trimEnd();
+        const lastChar = trimmed[trimmed.length - 1];
+        // Find the horizontal fill character used in this boundary
+        const horizontalChars = [...BOX_CHARS.horizontal, ...BOX_CHARS.asciiHorizontal];
+        let fillChar = "─";
+        for (const c of horizontalChars) {
+          if (trimmed.includes(c)) {
+            fillChar = c;
+            break;
+          }
+        }
+        const expanded = trimmed.slice(0, -1) + fillChar.repeat(expandTarget - lineWidth) + lastChar;
+        currentTargetWidth = expandTarget;
+        outerLinesFixed++;
+        return expanded;
+      }
+
       return line;
     }
 
@@ -276,9 +314,12 @@ export function boxfixDiagram(content: string): {
       }
     }
 
+    // If boundaries were expanded, use that target
+    if (expandTarget > 0 && targetWidth < expandTarget) {
+      targetWidth = expandTarget;
+    }
+
     // Only fix if we have a target and line is shorter
-    // TODO: Support boundary expansion when content is longer than boundary.
-    // Currently we only pad short lines - we don't expand boundaries to fit overflow.
     if (targetWidth === 0 || lineWidth >= targetWidth) {
       return line;
     }
