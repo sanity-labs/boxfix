@@ -277,6 +277,22 @@ export function boxfixDiagram(content: string): {
     return cols;
   }
 
+  // Find all vertical-alignment positions in a boundary (corners + tees)
+  // These positions indicate where │ chars should align in content lines
+  const allTees: string[] = [...BOX_CHARS.tees];
+  function findBoundaryVerticalPositions(boundaryLine: string): number[] {
+    const positions: number[] = [];
+    let col = 0;
+    const first = true;
+    for (const char of boundaryLine) {
+      if (allCorners.includes(char) || allTees.includes(char)) {
+        positions.push(col);
+      }
+      col += getDisplayWidth(char);
+    }
+    return positions;
+  }
+
   // Helper: find column positions of vertical borders in a content line
   const verticalCharsAll: string[] = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical];
 
@@ -341,23 +357,22 @@ export function boxfixDiagram(content: string): {
       return line;
     }
 
-    // Try column-based padding for side-by-side boxes
+    // Try column-based padding for multi-cell lines (tables, side-by-side boxes)
     if (currentBoundaryLine) {
-      const cornerCols = findRightCornerColumns(currentBoundaryLine);
+      const boundaryPositions = findBoundaryVerticalPositions(currentBoundaryLine);
       const vertCols = findVerticalColumns(trimmed);
 
-      // If we have the same number of right-side positions, pad each cell
-      if (cornerCols.length >= 2 && vertCols.length >= 2 && cornerCols.length === vertCols.length) {
+      // If boundary and content have matching vertical positions, pad each cell
+      if (boundaryPositions.length >= 2 && vertCols.length >= 2 && boundaryPositions.length === vertCols.length) {
         let result = trimmed;
         let totalPadded = 0;
         // Process right to left to avoid column shifts
-        for (let i = cornerCols.length - 1; i >= 0; i--) {
-          const targetCol = cornerCols[i];
+        for (let i = boundaryPositions.length - 1; i >= 0; i--) {
+          const targetCol = boundaryPositions[i];
           const actualCol = vertCols[i].col + totalPadded;
           if (targetCol > actualCol) {
             const padAmount = targetCol - actualCol;
-            const charIdx = vertCols[i].charIdx + totalPadded;
-            // Recompute char index based on actual column position
+            // Find the char index at actualCol in the result string
             let currentCol = 0;
             let insertIdx = 0;
             for (const char of result) {
