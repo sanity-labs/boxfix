@@ -389,12 +389,14 @@ export function boxfixDiagram(content: string): {
     // Fallback: whole-line padding
     let targetWidth = currentTargetWidth;
 
-    // Look for a boundary width that this line is close to (within 1-3 chars)
-    for (const bw of boundaryWidths) {
-      const diff = bw - lineWidth;
-      if (diff > 0 && diff <= 3) {
-        if (targetWidth === 0 || Math.abs(bw - lineWidth) < Math.abs(targetWidth - lineWidth)) {
-          targetWidth = bw;
+    // Only search for a closer boundary width if we don't have a context target
+    if (targetWidth === 0) {
+      for (const bw of boundaryWidths) {
+        const diff = bw - lineWidth;
+        if (diff > 0 && diff <= 3) {
+          if (targetWidth === 0 || Math.abs(bw - lineWidth) < Math.abs(targetWidth - lineWidth)) {
+            targetWidth = bw;
+          }
         }
       }
     }
