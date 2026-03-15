@@ -75,12 +75,12 @@ export function isBoundaryLine(line: string): boolean {
   const firstChar = trimmed[0];
   const lastChar = trimmed[trimmed.length - 1];
 
-  // Unicode boundary: starts and ends with corner characters
-  const unicodeCorners: readonly string[] = BOX_CHARS.corners;
-  const startsWithUnicodeCorner = unicodeCorners.includes(firstChar);
-  const endsWithUnicodeCorner = unicodeCorners.includes(lastChar);
+  // Unicode boundary: starts and ends with corner or tee characters
+  const boundaryEndChars: string[] = [...BOX_CHARS.corners, ...BOX_CHARS.tees];
+  const startsWithBoundaryChar = boundaryEndChars.includes(firstChar);
+  const endsWithBoundaryChar = boundaryEndChars.includes(lastChar);
 
-  if (startsWithUnicodeCorner && endsWithUnicodeCorner) {
+  if (startsWithBoundaryChar && endsWithBoundaryChar) {
     // Must also contain horizontal lines
     const hasHorizontal = BOX_CHARS.horizontal.some((c) => trimmed.includes(c));
     if (hasHorizontal) {
