@@ -249,9 +249,16 @@ export function boxfixDiagram(content: string): {
     }
   }
 
-  // Expand boundaries if content overflows and all boundaries are the same width
+  // Expand boundaries if content overflows in a simple box (no inner boxes)
+  // Count boundary lines to detect simple vs nested structures
+  let boundaryLineCount = 0;
+  for (const line of lines) {
+    if (isBoundaryLine(line)) {
+      boundaryLineCount++;
+    }
+  }
   const boundaryWidth = [...boundaryWidths][0];
-  const shouldExpand = boundaryWidths.size === 1 && maxContentWidth > boundaryWidth;
+  const shouldExpand = boundaryWidths.size === 1 && boundaryLineCount === 2 && maxContentWidth > boundaryWidth;
   const expandTarget = shouldExpand ? maxContentWidth : 0;
 
   // Process each line, tracking current box context
