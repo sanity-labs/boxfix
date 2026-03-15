@@ -278,7 +278,7 @@ export function boxfixDiagram(content: string): {
   }
 
   // Helper: find column positions of vertical borders in a content line
-  const verticalCharsAll = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical];
+  const verticalCharsAll: string[] = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical];
 
   function findVerticalColumns(contentLine: string): { col: number; charIdx: number }[] {
     const positions: { col: number; charIdx: number }[] = [];
