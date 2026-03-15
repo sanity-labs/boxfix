@@ -365,21 +365,20 @@ export function boxfixDiagram(content: string): {
       // If boundary and content have matching vertical positions, pad each cell
       if (boundaryPositions.length >= 2 && vertCols.length >= 2 && boundaryPositions.length === vertCols.length) {
         let result = trimmed;
-        let totalPadded = 0;
-        // Process right to left so insertions don't affect left-side positions
-        for (let i = boundaryPositions.length - 1; i >= 0; i--) {
-          const targetCol = boundaryPositions[i];
-          // Left-side positions are NOT affected by right-side insertions
-          const actualCol = vertCols[i].col;
-          if (targetCol > actualCol) {
-            const padAmount = targetCol - actualCol;
-            // charIdx is unaffected by right-side insertions (processing right to left)
-            const insertIdx = vertCols[i].charIdx;
+        let totalInserted = 0;
+        // Process left to right, computing per-cell padding
+        for (let i = 1; i < boundaryPositions.length; i++) {
+          const boundarySpan = boundaryPositions[i] - boundaryPositions[i - 1];
+          const contentSpan = vertCols[i].col - vertCols[i - 1].col;
+          const padAmount = boundarySpan - contentSpan;
+          if (padAmount > 0) {
+            // Insert before the right-side vertical of this cell
+            const insertIdx = vertCols[i].charIdx + totalInserted;
             result = result.slice(0, insertIdx) + " ".repeat(padAmount) + result.slice(insertIdx);
-            totalPadded += padAmount;
+            totalInserted += padAmount;
           }
         }
-        if (totalPadded > 0) {
+        if (totalInserted > 0) {
           outerLinesFixed++;
           const trailingWhitespace = line.slice(trimmed.length);
           return result + trailingWhitespace;
