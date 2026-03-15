@@ -261,9 +261,43 @@ export function boxfixDiagram(content: string): {
   const shouldExpand = boundaryWidths.size === 1 && boundaryLineCount === 2 && maxContentWidth > boundaryWidth;
   const expandTarget = shouldExpand ? maxContentWidth : 0;
 
+  // Helper: find column positions of right-side corners/border-ends in a boundary line
+  const allCorners = [...BOX_CHARS.corners, ...BOX_CHARS.asciiCorners, ...BOX_CHARS.tees];
+  const rightCorners = ["┐", "┘", "╗", "╝", "╮", "╯", "┓", "┛", "+", "┤", "┫", "╣"];
+
+  function findRightCornerColumns(boundaryLine: string): number[] {
+    const cols: number[] = [];
+    let col = 0;
+    for (const char of boundaryLine) {
+      if (rightCorners.includes(char)) {
+        cols.push(col);
+      }
+      col += getDisplayWidth(char);
+    }
+    return cols;
+  }
+
+  // Helper: find column positions of vertical borders in a content line
+  const verticalCharsAll = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical];
+
+  function findVerticalColumns(contentLine: string): { col: number; charIdx: number }[] {
+    const positions: { col: number; charIdx: number }[] = [];
+    let col = 0;
+    let idx = 0;
+    for (const char of contentLine) {
+      if (verticalCharsAll.includes(char)) {
+        positions.push({ col, charIdx: idx });
+      }
+      col += getDisplayWidth(char);
+      idx++;
+    }
+    return positions;
+  }
+
   // Process each line, tracking current box context
   let outerLinesFixed = 0;
   let currentTargetWidth = 0;
+  let currentBoundaryLine = "";
 
   const fixedLines = lines.map((line) => {
     const lineWidth = getDisplayWidth(line);
@@ -271,12 +305,12 @@ export function boxfixDiagram(content: string): {
     // If this is a boundary line, update current target width
     if (isBoundaryLine(line)) {
       currentTargetWidth = lineWidth;
+      currentBoundaryLine = line;
 
       // Expand boundary if content overflows
       if (expandTarget > 0 && lineWidth < expandTarget) {
         const trimmed = line.trimEnd();
         const lastChar = trimmed[trimmed.length - 1];
-        // Find the horizontal fill character used in this boundary
         const horizontalChars = [...BOX_CHARS.horizontal, ...BOX_CHARS.asciiHorizontal];
         let fillChar = "─";
         for (const c of horizontalChars) {
@@ -287,6 +321,7 @@ export function boxfixDiagram(content: string): {
         }
         const expanded = trimmed.slice(0, -1) + fillChar.repeat(expandTarget - lineWidth) + lastChar;
         currentTargetWidth = expandTarget;
+        currentBoundaryLine = expanded;
         outerLinesFixed++;
         return expanded;
       }
@@ -306,15 +341,49 @@ export function boxfixDiagram(content: string): {
       return line;
     }
 
-    // Find the best matching target width for this line
-    // It should be a boundary width that's slightly larger than the current line
+    // Try column-based padding for side-by-side boxes
+    if (currentBoundaryLine) {
+      const cornerCols = findRightCornerColumns(currentBoundaryLine);
+      const vertCols = findVerticalColumns(trimmed);
+
+      // If we have the same number of right-side positions, pad each cell
+      if (cornerCols.length >= 2 && vertCols.length >= 2 && cornerCols.length === vertCols.length) {
+        let result = trimmed;
+        let totalPadded = 0;
+        // Process right to left to avoid column shifts
+        for (let i = cornerCols.length - 1; i >= 0; i--) {
+          const targetCol = cornerCols[i];
+          const actualCol = vertCols[i].col + totalPadded;
+          if (targetCol > actualCol) {
+            const padAmount = targetCol - actualCol;
+            const charIdx = vertCols[i].charIdx + totalPadded;
+            // Recompute char index based on actual column position
+            let currentCol = 0;
+            let insertIdx = 0;
+            for (const char of result) {
+              if (currentCol >= actualCol) break;
+              currentCol += getDisplayWidth(char);
+              insertIdx++;
+            }
+            result = result.slice(0, insertIdx) + " ".repeat(padAmount) + result.slice(insertIdx);
+            totalPadded += padAmount;
+          }
+        }
+        if (totalPadded > 0) {
+          outerLinesFixed++;
+          const trailingWhitespace = line.slice(trimmed.length);
+          return result + trailingWhitespace;
+        }
+      }
+    }
+
+    // Fallback: whole-line padding
     let targetWidth = currentTargetWidth;
 
     // Look for a boundary width that this line is close to (within 1-3 chars)
     for (const bw of boundaryWidths) {
       const diff = bw - lineWidth;
       if (diff > 0 && diff <= 3) {
-        // This boundary is a good match - prefer it if it's closer than current target
         if (targetWidth === 0 || Math.abs(bw - lineWidth) < Math.abs(targetWidth - lineWidth)) {
           targetWidth = bw;
         }
