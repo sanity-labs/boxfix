@@ -1,6 +1,6 @@
 {
   "name": "boxfix",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "packageManager": "pnpm@10.10.0",
   "description": "Fix misaligned ASCII diagram borders in markdown files",
   "type": "module",
