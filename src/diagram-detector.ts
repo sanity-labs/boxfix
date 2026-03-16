@@ -75,12 +75,12 @@ export function isBoundaryLine(line: string): boolean {
   const firstChar = trimmed[0];
   const lastChar = trimmed[trimmed.length - 1];
 
-  // Unicode boundary: starts and ends with corner characters
-  const unicodeCorners: readonly string[] = BOX_CHARS.corners;
-  const startsWithUnicodeCorner = unicodeCorners.includes(firstChar);
-  const endsWithUnicodeCorner = unicodeCorners.includes(lastChar);
+  // Unicode boundary: starts and ends with corner or tee characters
+  const boundaryEndChars: string[] = [...BOX_CHARS.corners, ...BOX_CHARS.tees];
+  const startsWithBoundaryChar = boundaryEndChars.includes(firstChar);
+  const endsWithBoundaryChar = boundaryEndChars.includes(lastChar);
 
-  if (startsWithUnicodeCorner && endsWithUnicodeCorner) {
+  if (startsWithBoundaryChar && endsWithBoundaryChar) {
     // Must also contain horizontal lines
     const hasHorizontal = BOX_CHARS.horizontal.some((c) => trimmed.includes(c));
     if (hasHorizontal) {
@@ -151,8 +151,8 @@ export function isConnectorLine(line: string): boolean {
  */
 export function isContentLine(line: string): boolean {
   const trimmed = line.trim();
-  // Need at least 3 chars: start border, some content, end border
-  if (trimmed.length < 3) return false;
+  // Need at least 2 chars: start border + end border (empty content is valid)
+  if (trimmed.length < 2) return false;
 
   const verticalChars: string[] = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical];
 
@@ -181,7 +181,7 @@ export function hasInnerBoundary(line: string): boolean {
   }
 
   // Check for corner chars not at position 0
-  const topCorners = ["┌", "+"];
+  const topCorners = ["┌", "╔", "╭", "┏", "+"];
 
   // Skip first character (the outer border) and look for inner boundaries
   for (let i = 1; i < trimmed.length - 1; i++) {
@@ -198,7 +198,7 @@ export function hasInnerBoundary(line: string): boolean {
  * Returns -1 if not found
  */
 export function findInnerTopCornerColumn(line: string, startSearchCol = 0): number {
-  const topCorners = ["┌", "+"];
+  const topCorners = ["┌", "╔", "╭", "┏", "+"];
   let currentCol = 0;
 
   for (const char of line) {
@@ -216,7 +216,7 @@ export function findInnerTopCornerColumn(line: string, startSearchCol = 0): numb
  * Returns true if a bottom corner exists at the given column
  */
 export function hasBottomCornerAtColumn(line: string, col: number): boolean {
-  const bottomCorners = ["└", "+"];
+  const bottomCorners = ["└", "╚", "╰", "┗", "+"];
   let currentCol = 0;
 
   for (const char of line) {
@@ -237,8 +237,8 @@ export function hasBottomCornerAtColumn(line: string, col: number): boolean {
  * Returns the column after the last character of the boundary
  */
 export function findBoundaryEndColumn(line: string, startCol: number): number {
-  const horizontalChars = ["─", "━", "-", "="];
-  const endCorners = ["┐", "┘", "+"];
+  const horizontalChars = ["─", "━", "═", "-", "="];
+  const endCorners = ["┐", "┘", "╗", "╝", "╮", "╯", "┓", "┛", "+"];
   let currentCol = 0;
   let lastBoundaryCol = startCol;
 

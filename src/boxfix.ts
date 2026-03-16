@@ -1,4 +1,4 @@
-import { BoxfixResult, BoxfixStats, RIGHT_BORDER_CHARS, BoxRegion } from "./types.js";
+import { BoxfixResult, BoxfixStats, RIGHT_BORDER_CHARS, BOX_CHARS, BoxRegion } from "./types.js";
 import {
   getDisplayWidth,
   expandTabs,
@@ -91,7 +91,7 @@ interface ExtractedBox {
 function extractInnerBox(lines: string[], region: BoxRegion): ExtractedBox | null {
   const extractedLines: string[] = [];
   const lineWidths: number[] = [];
-  const verticalChars = ["│", "┃", "|"];
+  const verticalChars = ["│", "┃", "║", "|"];
 
   for (let i = region.startLine; i <= region.endLine; i++) {
     const line = lines[i];
@@ -124,7 +124,7 @@ function extractInnerBox(lines: string[], region: BoxRegion): ExtractedBox | nul
   // Validate that the extraction produced a valid box
   // The first line should be a boundary line (start with corner character)
   const firstLine = extractedLines[0];
-  const topCorners = ["┌", "+"];
+  const topCorners = ["┌", "╔", "╭", "┏", "+"];
   if (!firstLine || !topCorners.includes(firstLine[0])) {
     // Extraction didn't produce a valid box (misaligned inner box)
     return null;
@@ -236,9 +236,84 @@ export function boxfixDiagram(content: string): {
     return { result: lines.join("\n"), linesFixed: totalLinesFixed };
   }
 
+  // Check if content overflows boundaries (only for simple single-width boxes)
+  // Find max content width
+  let maxContentWidth = 0;
+  for (const line of lines) {
+    if (isContentLine(line) && !isTreeLine(line)) {
+      const trimmed = line.trimEnd();
+      const lastChar = trimmed.slice(-1);
+      if (RIGHT_BORDER_CHARS.includes(lastChar)) {
+        maxContentWidth = Math.max(maxContentWidth, getDisplayWidth(trimmed));
+      }
+    }
+  }
+
+  // Expand boundaries if content overflows in a simple box (no inner boxes)
+  // Count boundary lines to detect simple vs nested structures
+  let boundaryLineCount = 0;
+  for (const line of lines) {
+    if (isBoundaryLine(line)) {
+      boundaryLineCount++;
+    }
+  }
+  const boundaryWidth = [...boundaryWidths][0];
+  const shouldExpand = boundaryWidths.size === 1 && boundaryLineCount === 2 && regions.length === 0 && maxContentWidth > boundaryWidth;
+  const expandTarget = shouldExpand ? maxContentWidth : 0;
+
+  // Helper: find column positions of right-side corners/border-ends in a boundary line
+  const allCorners = [...BOX_CHARS.corners, ...BOX_CHARS.asciiCorners, ...BOX_CHARS.tees];
+  const rightCorners = ["┐", "┘", "╗", "╝", "╮", "╯", "┓", "┛", "+", "┤", "┫", "╣"];
+
+  function findRightCornerColumns(boundaryLine: string): number[] {
+    const cols: number[] = [];
+    let col = 0;
+    for (const char of boundaryLine) {
+      if (rightCorners.includes(char)) {
+        cols.push(col);
+      }
+      col += getDisplayWidth(char);
+    }
+    return cols;
+  }
+
+  // Find all vertical-alignment positions in a boundary (corners + tees)
+  // These positions indicate where │ chars should align in content lines
+  const allTeesStr: string[] = [...BOX_CHARS.tees];
+  const allCornersStr: string[] = [...BOX_CHARS.corners, ...BOX_CHARS.asciiCorners];
+  function findBoundaryVerticalPositions(boundaryLine: string): number[] {
+    const positions: number[] = [];
+    let col = 0;
+    for (const char of boundaryLine) {
+      if (allCornersStr.includes(char) || allTeesStr.includes(char)) {
+        positions.push(col);
+      }
+      col += getDisplayWidth(char);
+    }
+    return positions;
+  }
+
+  // Helper: find column positions of vertical borders in a content line
+  const verticalCharsAll: string[] = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical];
+
+  function findVerticalColumns(contentLine: string): { col: number; charIdx: number }[] {
+    const positions: { col: number; charIdx: number }[] = [];
+    let col = 0;
+    let idx = 0;
+    for (const char of contentLine) {
+      if (verticalCharsAll.includes(char)) {
+        positions.push({ col, charIdx: idx });
+      }
+      col += getDisplayWidth(char);
+      idx++;
+    }
+    return positions;
+  }
+
   // Process each line, tracking current box context
   let outerLinesFixed = 0;
   let currentTargetWidth = 0;
+  let currentBoundaryLine = "";
 
   const fixedLines = lines.map((line) => {
     const lineWidth = getDisplayWidth(line);
@@ -246,6 +321,27 @@ export function boxfixDiagram(content: string): {
     // If this is a boundary line, update current target width
     if (isBoundaryLine(line)) {
       currentTargetWidth = lineWidth;
+      currentBoundaryLine = line;
+
+      // Expand boundary if content overflows
+      if (expandTarget > 0 && lineWidth < expandTarget) {
+        const trimmed = line.trimEnd();
+        const lastChar = trimmed[trimmed.length - 1];
+        const horizontalChars = [...BOX_CHARS.horizontal, ...BOX_CHARS.asciiHorizontal];
+        let fillChar = "─";
+        for (const c of horizontalChars) {
+          if (trimmed.includes(c)) {
+            fillChar = c;
+            break;
+          }
+        }
+        const expanded = trimmed.slice(0, -1) + fillChar.repeat(expandTarget - lineWidth) + lastChar;
+        currentTargetWidth = expandTarget;
+        currentBoundaryLine = expanded;
+        outerLinesFixed++;
+        return expanded;
+      }
+
       return line;
     }
 
@@ -261,24 +357,56 @@ export function boxfixDiagram(content: string): {
       return line;
     }
 
-    // Find the best matching target width for this line
-    // It should be a boundary width that's slightly larger than the current line
-    let targetWidth = currentTargetWidth;
+    // Try column-based padding for multi-cell lines (tables, side-by-side boxes)
+    if (currentBoundaryLine) {
+      const boundaryPositions = findBoundaryVerticalPositions(currentBoundaryLine);
+      const vertCols = findVerticalColumns(trimmed);
 
-    // Look for a boundary width that this line is close to (within 1-3 chars)
-    for (const bw of boundaryWidths) {
-      const diff = bw - lineWidth;
-      if (diff > 0 && diff <= 3) {
-        // This boundary is a good match - prefer it if it's closer than current target
-        if (targetWidth === 0 || Math.abs(bw - lineWidth) < Math.abs(targetWidth - lineWidth)) {
-          targetWidth = bw;
+      // If boundary and content have matching vertical positions, pad each cell
+      if (boundaryPositions.length >= 2 && vertCols.length >= 2 && boundaryPositions.length === vertCols.length) {
+        let result = trimmed;
+        let totalInserted = 0;
+        // Process left to right, computing per-cell padding
+        for (let i = 1; i < boundaryPositions.length; i++) {
+          const boundarySpan = boundaryPositions[i] - boundaryPositions[i - 1];
+          const contentSpan = vertCols[i].col - vertCols[i - 1].col;
+          const padAmount = boundarySpan - contentSpan;
+          if (padAmount > 0) {
+            // Insert before the right-side vertical of this cell
+            const insertIdx = vertCols[i].charIdx + totalInserted;
+            result = result.slice(0, insertIdx) + " ".repeat(padAmount) + result.slice(insertIdx);
+            totalInserted += padAmount;
+          }
+        }
+        if (totalInserted > 0) {
+          outerLinesFixed++;
+          const trailingWhitespace = line.slice(trimmed.length);
+          return result + trailingWhitespace;
         }
       }
     }
 
+    // Fallback: whole-line padding
+    let targetWidth = currentTargetWidth;
+
+    // Only search for a closer boundary width if we don't have a context target
+    if (targetWidth === 0) {
+      for (const bw of boundaryWidths) {
+        const diff = bw - lineWidth;
+        if (diff > 0 && diff <= 3) {
+          if (targetWidth === 0 || Math.abs(bw - lineWidth) < Math.abs(targetWidth - lineWidth)) {
+            targetWidth = bw;
+          }
+        }
+      }
+    }
+
+    // If boundaries were expanded, use that target
+    if (expandTarget > 0 && targetWidth < expandTarget) {
+      targetWidth = expandTarget;
+    }
+
     // Only fix if we have a target and line is shorter
-    // TODO: Support boundary expansion when content is longer than boundary.
-    // Currently we only pad short lines - we don't expand boundaries to fit overflow.
     if (targetWidth === 0 || lineWidth >= targetWidth) {
       return line;
     }
