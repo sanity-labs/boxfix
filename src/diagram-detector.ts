@@ -237,7 +237,7 @@ export function hasBottomCornerAtColumn(line: string, col: number): boolean {
  * Returns the column after the last character of the boundary
  */
 export function findBoundaryEndColumn(line: string, startCol: number): number {
-  const horizontalChars = ["─", "━", "-", "="];
+  const horizontalChars = ["─", "━", "═", "-", "="];
   const endCorners = ["┐", "┘", "╗", "╝", "╮", "╯", "┓", "┛", "+"];
   let currentCol = 0;
   let lastBoundaryCol = startCol;
