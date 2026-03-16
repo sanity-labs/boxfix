@@ -54,7 +54,7 @@ export const BOX_CHARS = {
 /**
  * All right border characters (vertical lines that can end a content line)
  */
-export const RIGHT_BORDER_CHARS: string[] = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical];
+export const RIGHT_BORDER_CHARS: string[] = [...BOX_CHARS.vertical, ...BOX_CHARS.asciiVertical, "┤", "╣", "┫"];
 
 /**
  * Characters that indicate a boundary line (top/bottom of box)
