@@ -3,6 +3,7 @@ import {
   getDisplayWidth,
   expandTabs,
   padBeforeLastChar,
+  trimSpaceRuns,
   sliceByDisplayColumn,
   replaceByDisplayColumn,
 } from "./width.js";
@@ -365,20 +366,32 @@ export function boxfixDiagram(content: string): {
       // If boundary and content have matching vertical positions, pad each cell
       if (boundaryPositions.length >= 2 && vertCols.length >= 2 && boundaryPositions.length === vertCols.length) {
         let result = trimmed;
-        let totalInserted = 0;
-        // Process left to right, computing per-cell padding
+        let totalDelta = 0;
+        // Process left to right, computing per-cell padding or trimming
         for (let i = 1; i < boundaryPositions.length; i++) {
           const boundarySpan = boundaryPositions[i] - boundaryPositions[i - 1];
           const contentSpan = vertCols[i].col - vertCols[i - 1].col;
           const padAmount = boundarySpan - contentSpan;
           if (padAmount > 0) {
             // Insert before the right-side vertical of this cell
-            const insertIdx = vertCols[i].charIdx + totalInserted;
+            const insertIdx = vertCols[i].charIdx + totalDelta;
             result = result.slice(0, insertIdx) + " ".repeat(padAmount) + result.slice(insertIdx);
-            totalInserted += padAmount;
+            totalDelta += padAmount;
+          } else if (padAmount < 0) {
+            // Cell is wider than boundary - trim excess spaces within cell
+            const leftCharIdx = vertCols[i - 1].charIdx + totalDelta;
+            const rightCharIdx = vertCols[i].charIdx + totalDelta;
+            const cellContent = result.slice(leftCharIdx, rightCharIdx);
+            const cellWidth = getDisplayWidth(cellContent);
+            const cellTargetWidth = cellWidth + padAmount;
+            const { trimmed: trimmedCell, spacesRemoved } = trimSpaceRuns(cellContent, cellTargetWidth);
+            if (spacesRemoved > 0) {
+              result = result.slice(0, leftCharIdx) + trimmedCell + result.slice(rightCharIdx);
+              totalDelta += padAmount;
+            }
           }
         }
-        if (totalInserted > 0) {
+        if (totalDelta !== 0) {
           outerLinesFixed++;
           const trailingWhitespace = line.slice(trimmed.length);
           return result + trailingWhitespace;
@@ -406,8 +419,24 @@ export function boxfixDiagram(content: string): {
       targetWidth = expandTarget;
     }
 
-    // Only fix if we have a target and line is shorter
-    if (targetWidth === 0 || lineWidth >= targetWidth) {
+    if (targetWidth === 0) {
+      return line;
+    }
+
+    const trimmedWidth = getDisplayWidth(trimmed);
+
+    if (trimmedWidth > targetWidth) {
+      // Try trimming excess spaces (inverse of padding)
+      const { trimmed: trimmedResult, spacesRemoved } = trimSpaceRuns(trimmed, targetWidth);
+      if (spacesRemoved > 0 && getDisplayWidth(trimmedResult) === targetWidth) {
+        outerLinesFixed++;
+        const trailingWhitespace = line.slice(trimmed.length);
+        return trimmedResult + trailingWhitespace;
+      }
+      return line;
+    }
+
+    if (trimmedWidth >= targetWidth) {
       return line;
     }
 
