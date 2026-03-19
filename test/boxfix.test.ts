@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { boxfix, boxfixDiagram } from "../src/boxfix.js";
 import { boxfixMarkdown } from "../src/markdown.js";
-import { getDisplayWidth, expandTabs, sliceByDisplayColumn, mapDisplayColumnToCharIndex } from "../src/width.js";
+import { getDisplayWidth, expandTabs, sliceByDisplayColumn, mapDisplayColumnToCharIndex, trimSpaceRuns } from "../src/width.js";
 import { isDiagram, isBoundaryLine, isContentLine, isTreeLine, hasInnerBoundary, isConnectorLine } from "../src/diagram-detector.js";
 import { extractFilePath } from "../src/cli.js";
 
@@ -30,6 +30,81 @@ describe("expandTabs", () => {
 
   it("handles multiple tabs", () => {
     expect(expandTabs("\t\t")).toBe("                ");
+  });
+});
+
+describe("trimSpaceRuns", () => {
+  it("trims a single space run to reach target width", () => {
+    // "│ hello      │" = 14 wide, target = 10
+    const input = "│ hello      │";
+    const { trimmed, spacesRemoved } = trimSpaceRuns(input, 10);
+    expect(getDisplayWidth(trimmed)).toBe(10);
+    expect(spacesRemoved).toBe(4);
+    expect(trimmed).toBe("│ hello  │");
+  });
+
+  it("trims multiple space runs right-to-left", () => {
+    const input = "│  a     b     │";
+    const target = 10;
+    const { trimmed, spacesRemoved } = trimSpaceRuns(input, target);
+    expect(getDisplayWidth(trimmed)).toBe(target);
+    expect(spacesRemoved).toBe(6);
+    // Right-to-left: rightmost run (5 spaces) trimmed first by 4, then middle run by 2
+    expect(trimmed).toBe("│  a   b │");
+  });
+
+  it("respects minSpaces parameter", () => {
+    // "│  a    b    │" = 14, target = 10, minSpaces = 2
+    // With minSpaces=2, runs can only shrink down to 2 spaces each
+    const input = "│  a    b    │";
+    const { trimmed, spacesRemoved } = trimSpaceRuns(input, 10, 2);
+    expect(getDisplayWidth(trimmed)).toBe(10);
+    expect(spacesRemoved).toBe(4);
+    expect(trimmed).toBe("│  a  b  │");
+  });
+
+  it("returns unchanged when already at target width", () => {
+    const input = "│ ok │";
+    const { trimmed, spacesRemoved } = trimSpaceRuns(input, 6);
+    expect(trimmed).toBe(input);
+    expect(spacesRemoved).toBe(0);
+  });
+
+  it("returns unchanged when narrower than target width", () => {
+    const input = "│ ok │";
+    const { trimmed, spacesRemoved } = trimSpaceRuns(input, 20);
+    expect(trimmed).toBe(input);
+    expect(spacesRemoved).toBe(0);
+  });
+
+  it("returns unchanged when can't reach exact target (minSpaces constraint)", () => {
+    // "│ a b │" = 7, target = 5
+    // Only one space run of length 1 between a and b, can't remove with minSpaces=1
+    const input = "│ a b │";
+    const { trimmed, spacesRemoved } = trimSpaceRuns(input, 5);
+    expect(trimmed).toBe(input);
+    expect(spacesRemoved).toBe(0);
+  });
+
+  it("preserves leading indentation", () => {
+    // The leading spaces before │ are before the first non-space char, so preserved
+    const input = "  │  hello      │";
+    const { trimmed, spacesRemoved } = trimSpaceRuns(input, 13);
+    expect(getDisplayWidth(trimmed)).toBe(13);
+    expect(spacesRemoved).toBe(4);
+    expect(trimmed).toBe("  │  hello  │");
+  });
+
+  it("returns unchanged for all-space string", () => {
+    const { trimmed, spacesRemoved } = trimSpaceRuns("        ", 4);
+    expect(trimmed).toBe("        ");
+    expect(spacesRemoved).toBe(0);
+  });
+
+  it("returns unchanged for single non-space character", () => {
+    const { trimmed, spacesRemoved } = trimSpaceRuns("x", 0);
+    expect(trimmed).toBe("x");
+    expect(spacesRemoved).toBe(0);
   });
 });
 
@@ -336,6 +411,72 @@ describe("boxfixDiagram", () => {
     const { result, linesFixed } = boxfixDiagram(input);
     expect(result).toBe(input);
     expect(linesFixed).toBe(0);
+  });
+
+  it("trims over-wide content line to match boundary width", () => {
+    // Use 3 boundary lines (├) so boundary expansion doesn't kick in
+    const input = `┌─────────┐
+│ content         │
+├─────────┤
+│ ok      │
+└─────────┘`;
+    const expected = `┌─────────┐
+│ content │
+├─────────┤
+│ ok      │
+└─────────┘`;
+    const { result, linesFixed } = boxfixDiagram(input);
+    expect(result).toBe(expected);
+    expect(linesFixed).toBe(1);
+  });
+
+  it("trims multi-run excess spaces distributed across line", () => {
+    // Use 3 boundary lines so expansion doesn't trigger
+    const input = `┌──────────────────┐
+│  hello      world          │
+├──────────────────┤
+│ ok               │
+└──────────────────┘`;
+    const expected = `┌──────────────────┐
+│  hello     world │
+├──────────────────┤
+│ ok               │
+└──────────────────┘`;
+    const { result, linesFixed } = boxfixDiagram(input);
+    expect(result).toBe(expected);
+    expect(linesFixed).toBe(1);
+  });
+
+  it("handles mixed: some lines need padding, others need trimming", () => {
+    // Use 3 boundary lines so expansion doesn't trigger
+    const input = `┌──────────┐
+│ hello│
+│ world          │
+├──────────┤
+│ ok       │
+└──────────┘`;
+    const expected = `┌──────────┐
+│ hello    │
+│ world    │
+├──────────┤
+│ ok       │
+└──────────┘`;
+    const { result, linesFixed } = boxfixDiagram(input);
+    expect(result).toBe(expected);
+    expect(linesFixed).toBe(2);
+  });
+
+  it("leaves over-wide lines unchanged when trimming can't reach exact target", () => {
+    // Content has no internal space runs to trim (solid text)
+    // Use 3 boundary lines so expansion doesn't trigger
+    const input = `┌─────┐
+│ abcdefghij│
+├─────┤
+│ ok  │
+└─────┘`;
+    const { result } = boxfixDiagram(input);
+    // Can't trim: only 1 space run of length 1 between │ chars, can't remove any
+    expect(result).toBe(input);
   });
 
   it("does not modify spaced connector lines (real-world bug)", () => {

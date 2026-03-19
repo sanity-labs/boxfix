@@ -83,6 +83,87 @@ export function replaceByDisplayColumn(
 }
 
 /**
+ * Trim excess spaces from a line to reach a target display width.
+ *
+ * Finds all space runs between the first and last non-space characters,
+ * then iterates right-to-left removing spaces from each run while keeping
+ * at least `minSpaces` per run for readability.
+ *
+ * Returns the unchanged line if it can't reach the exact target width.
+ */
+export function trimSpaceRuns(
+  line: string,
+  targetWidth: number,
+  minSpaces = 1
+): { trimmed: string; spacesRemoved: number } {
+  const currentWidth = getDisplayWidth(line);
+  const excessWidth = currentWidth - targetWidth;
+
+  if (excessWidth <= 0) {
+    return { trimmed: line, spacesRemoved: 0 };
+  }
+
+  // Find first and last non-space character positions
+  let firstNonSpace = -1;
+  let lastNonSpace = -1;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] !== " ") {
+      if (firstNonSpace === -1) firstNonSpace = i;
+      lastNonSpace = i;
+    }
+  }
+
+  if (firstNonSpace === -1 || firstNonSpace === lastNonSpace) {
+    return { trimmed: line, spacesRemoved: 0 };
+  }
+
+  // Find space runs between first and last non-space characters
+  const runs: { start: number; length: number }[] = [];
+  let i = firstNonSpace + 1;
+  while (i < lastNonSpace) {
+    if (line[i] === " ") {
+      const start = i;
+      while (i < lastNonSpace && line[i] === " ") i++;
+      runs.push({ start, length: i - start });
+    } else {
+      i++;
+    }
+  }
+
+  if (runs.length === 0) {
+    return { trimmed: line, spacesRemoved: 0 };
+  }
+
+  // Check if we can remove enough spaces to reach target
+  let removable = 0;
+  for (const run of runs) {
+    removable += Math.max(0, run.length - minSpaces);
+  }
+
+  if (removable < excessWidth) {
+    // Can't reach exact target width
+    return { trimmed: line, spacesRemoved: 0 };
+  }
+
+  // Remove spaces right-to-left
+  let remaining = excessWidth;
+  let result = line;
+
+  for (let r = runs.length - 1; r >= 0 && remaining > 0; r--) {
+    const run = runs[r];
+    const canRemove = Math.min(remaining, run.length - minSpaces);
+    if (canRemove > 0) {
+      result =
+        result.slice(0, run.start + run.length - canRemove) +
+        result.slice(run.start + run.length);
+      remaining -= canRemove;
+    }
+  }
+
+  return { trimmed: result, spacesRemoved: excessWidth - remaining };
+}
+
+/**
  * Pad a string to a target display width by inserting spaces before the last character
  */
 export function padBeforeLastChar(
