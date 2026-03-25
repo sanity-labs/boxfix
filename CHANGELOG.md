@@ -1,5 +1,11 @@
 # boxfix
 
+## 1.3.0
+
+### Minor Changes
+
+- bb72aa7: Add content trimming for over-wide diagram lines. When content lines have excess spaces making them wider than boundaries, boxfix now trims those spaces to match the boundary width. Previously these lines were silently skipped.
+
 ## 1.1.1
 
 ### Patch Changes
